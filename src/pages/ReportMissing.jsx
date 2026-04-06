@@ -1,19 +1,45 @@
-import { useState } from "react";
-import { UserPlus, Image as ImageIcon, Send, User, MapPin, Calendar } from "lucide-react";
+import { useState, useEffect } from "react";
+import { UserPlus, Image as ImageIcon, Send, User, MapPin, Calendar, AlertTriangle } from "lucide-react";
+import { db } from "../firebase";
+import { collection, addDoc, onSnapshot } from "firebase/firestore";
 
 function ReportMissing() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e) => {
+  const [disasters, setDisasters] = useState([]);
+  const [selectedDisaster, setSelectedDisaster] = useState("");
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "disasters"), (snapshot) => {
+      const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      setDisasters(data);
+    });
+    return () => unsub();
+  }, []);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     
-    // Simulate AI upload and processing
-    setTimeout(() => {
-      alert("Missing person report submitted. Our AI system will begin matching against shelter databases.");
+    try {
+      await addDoc(collection(db, "missing_persons"), {
+        name: e.target.personName.value,
+        age: e.target.age.value,
+        lastSeen: e.target.lastSeen.value,
+        features: e.target.features.value,
+        disasterId: selectedDisaster || "None",
+        match: "Pending Scan",
+        status: "Missing",
+        image: `https://api.dicebear.com/7.x/initials/svg?seed=${e.target.personName.value}&backgroundColor=1e293b`
+      });
+      alert("Missing person report securely submitted to the NGO centralized database. Rescue units have been notified.");
       setIsSubmitting(false);
-      window.history.back(); // Use history to go back after success
-    }, 1500);
+      window.history.back();
+    } catch (error) {
+      console.error(error);
+      alert("Error reporting missing person.");
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -59,7 +85,7 @@ function ReportMissing() {
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                     <User className="h-5 w-5 text-slate-500 group-focus-within:text-purple-400 transition-colors" />
                   </div>
-                  <input type="text" required placeholder="John Doe" className="w-full pl-11 pr-4 py-3.5 bg-slate-950/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 text-white placeholder-slate-500 transition-all outline-none" />
+                  <input name="personName" type="text" required placeholder="John Doe" className="w-full pl-11 pr-4 py-3.5 bg-slate-950/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 text-white placeholder-slate-500 transition-all outline-none" />
                 </div>
               </div>
               <div className="space-y-2">
@@ -68,8 +94,29 @@ function ReportMissing() {
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                     <Calendar className="h-5 w-5 text-slate-500 group-focus-within:text-purple-400 transition-colors" />
                   </div>
-                  <input type="number" required placeholder="Age in years" className="w-full pl-11 pr-4 py-3.5 bg-slate-950/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 text-white placeholder-slate-500 transition-all outline-none" />
+                  <input name="age" type="number" required placeholder="Age in years" className="w-full pl-11 pr-4 py-3.5 bg-slate-950/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 text-white placeholder-slate-500 transition-all outline-none" />
                 </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-300 ml-1">Associated Active Disaster</label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <AlertTriangle className="h-5 w-5 text-slate-500 group-focus-within:text-purple-400 transition-colors" />
+                </div>
+                <select 
+                  value={selectedDisaster} 
+                  onChange={(e) => setSelectedDisaster(e.target.value)} 
+                  required
+                  className="w-full pl-11 pr-4 py-3.5 bg-slate-950/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 text-white placeholder-slate-500 transition-all outline-none appearance-none"
+                >
+                  <option value="" disabled>Select the relevant emergency...</option>
+                  {disasters.map(d => (
+                    <option key={d.id} value={d.id}>{d.type} - {d.location}</option>
+                  ))}
+                  <option value="None">Not associated with an existing report</option>
+                </select>
               </div>
             </div>
 
@@ -79,13 +126,13 @@ function ReportMissing() {
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                   <MapPin className="h-5 w-5 text-slate-500 group-focus-within:text-purple-400 transition-colors" />
                 </div>
-                <input type="text" required placeholder="Specific address or landmark" className="w-full pl-11 pr-4 py-3.5 bg-slate-950/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 text-white placeholder-slate-500 transition-all outline-none" />
+                <input name="lastSeen" type="text" required placeholder="Specific address or landmark" className="w-full pl-11 pr-4 py-3.5 bg-slate-950/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 text-white placeholder-slate-500 transition-all outline-none" />
               </div>
             </div>
 
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-300 ml-1">Distinguishing Features & Clothing</label>
-              <textarea required rows="3" placeholder="Red jacket, blue jeans, scar on left cheek..." className="w-full p-4 bg-slate-950/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 text-white placeholder-slate-500 transition-all outline-none resize-none"></textarea>
+              <textarea name="features" required rows="3" placeholder="Red jacket, blue jeans, scar on left cheek..." className="w-full p-4 bg-slate-950/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 text-white placeholder-slate-500 transition-all outline-none resize-none"></textarea>
             </div>
 
             <button

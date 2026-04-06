@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline, useMap } from "react-leaflet";
 import { db } from "../firebase";
 import { collection, onSnapshot } from "firebase/firestore";
 import axios from "axios";
@@ -16,6 +16,22 @@ L.Icon.Default.mergeOptions({
 });
 
 // Routes removed as per user request
+
+function MapFitter({ markers }) {
+  const map = useMap();
+  useEffect(() => {
+    if (markers && markers.length > 0) {
+      const validMarkers = markers.filter(m => m.coords);
+      if (validMarkers.length > 0) {
+        const bounds = L.latLngBounds(validMarkers.map(m => [m.coords.lat, m.coords.lng]));
+        if (bounds.isValid()) {
+          map.flyToBounds(bounds, { padding: [40, 40], maxZoom: 13, duration: 1.5 });
+        }
+      }
+    }
+  }, [markers, map]);
+  return null;
+}
 
 function DisasterMap({ embedded = false }) {
   const [reports, setReports] = useState([]);
@@ -44,12 +60,14 @@ function DisasterMap({ embedded = false }) {
     return () => unsubscribe();
   }, []);
 
-  const getCoordinates = async (location) => {
+  const getCoordinates = async (location, id) => {
     if (!location) return null;
     const match = location.match(/Latitude:\s*([0-9.\-]+),\s*Longitude:\s*([0-9.\-]+)/);
     if (match) {
       return { lat: parseFloat(match[1]), lng: parseFloat(match[2]) };
     }
+    
+    // Try Geocoding strictly
     try {
       const response = await axios.get(`https://nominatim.openstreetmap.org/search`, {
         params: { q: location, format: "json", limit: 1 }
@@ -60,7 +78,8 @@ function DisasterMap({ embedded = false }) {
     } catch (error) {
       console.error("Geocoding error:", error);
     }
-    return null;
+
+    return null; // Return absolutely no coordinate if tracking can't verify an exact true location
   };
 
   const getRiskColor = (type) => {
@@ -91,10 +110,11 @@ function DisasterMap({ embedded = false }) {
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 className="map-tiles"
              />
+            
+            <MapFitter markers={reports} />
 
-            {/* Render Disasters */}
             {reports.map((r, i) => {
-              if (!r.coords) return null;
+              if (!r.coords || r.status === "Resolved") return null;
               const riskColor = getRiskColor(r.type);
 
               return (

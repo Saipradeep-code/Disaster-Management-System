@@ -6,6 +6,7 @@ import AuthHome from "./pages/AuthHome";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import NgoLogin from "./pages/NgoLogin";
+import NgoRegister from "./pages/NgoRegister";
 
 import UserHome from "./pages/UserHome";
 import ReportDisaster from "./pages/ReportDisaster";
@@ -116,6 +117,7 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/ngo-login" element={<NgoLogin />} />
+            <Route path="/ngo-register" element={<NgoRegister />} />
 
             {/* USER */}
             <Route path="/user-home" element={<UserHome />} />

@@ -2,36 +2,37 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Building2, Mail, Lock, ArrowRight } from "lucide-react";
 import { auth } from "../firebase";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword } from "firebase/auth";
 
-function NgoLogin() {
+function NgoRegister() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
 
     if (!email.endsWith("@ngo.com") && !email.endsWith("@ngo.org")) {
-      alert("Access Denied: Only authorized NGO emails (@ngo.com / @ngo.org) can access this portal. Standard users must use the User Portal.");
+      alert("Access Denied: Only authorized NGO emails (@ngo.com / @ngo.org) can register here. Standard users must use the User portal.");
       return;
     }
 
     if (email && password) {
       setIsSubmitting(true);
       try {
-        await signInWithEmailAndPassword(auth, email, password);
+        await createUserWithEmailAndPassword(auth, email, password);
         localStorage.setItem("role", "ngo");
+        alert("NGO Account Registered Successfully. Welcome to the Command Center.");
         navigate("/ngo-dashboard");
       } catch (error) {
         console.warn("Firebase Auth Error:", error.message);
-        alert(`Authentication Failed: Please check your credentials.`);
+        alert(`Registration Failed: ${error.message}`);
       } finally {
         setIsSubmitting(false);
       }
     } else {
-      alert("Enter NGO credentials");
+      alert("Please enter NGO credentials to register");
     }
   };
 
@@ -40,7 +41,7 @@ function NgoLogin() {
       {/* Dynamic Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute w-[500px] h-[500px] bg-rose-600/20 rounded-full blur-[100px] -top-20 -left-20 animate-pulse-slow"></div>
-        <div className="absolute w-[500px] h-[500px] bg-orange-600/20 rounded-full blur-[100px] bottom-0 right-0 animate-pulse-slow" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-[100px] bottom-0 right-0 animate-pulse-slow" style={{ animationDelay: '1s' }}></div>
       </div>
 
       <div className="w-full max-w-md z-10 animate-slide-up">
@@ -49,21 +50,22 @@ function NgoLogin() {
             <div className="bg-rose-500/10 p-3 rounded-2xl mb-4">
               <Building2 className="w-8 h-8 text-rose-400" />
             </div>
-            <h2 className="text-3xl font-bold text-white mb-2 tracking-tight">NGO Portal</h2>
-            <p className="text-slate-400 text-center">Login to coordinate emergency relief efforts</p>
+            <h2 className="text-3xl font-bold text-white mb-2 tracking-tight">NGO Registration</h2>
+            <p className="text-slate-400 text-center text-sm">Register a new Command Center terminal. Requires verified @ngo.com or @ngo.org domain.</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          <form onSubmit={handleRegister} className="flex flex-col gap-5">
             <div className="relative group">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <Mail className="h-5 w-5 text-slate-500 group-focus-within:text-rose-400 transition-colors" />
               </div>
               <input
                 type="email"
-                placeholder="NGO Email"
+                placeholder="Official NGO Email (@ngo.com)"
                 className="w-full pl-11 pr-4 py-3.5 bg-slate-950/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-rose-500/50 focus:border-rose-500/50 text-white placeholder-slate-500 transition-all outline-none"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                required
               />
             </div>
 
@@ -73,33 +75,29 @@ function NgoLogin() {
               </div>
               <input
                 type="password"
-                placeholder="Password"
+                placeholder="Secure Password"
                 className="w-full pl-11 pr-4 py-3.5 bg-slate-950/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-rose-500/50 focus:border-rose-500/50 text-white placeholder-slate-500 transition-all outline-none"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                required
               />
             </div>
 
             <button
               type="submit"
-              className="mt-2 w-full bg-rose-600 hover:bg-rose-500 text-white font-semibold py-3.5 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 group shadow-lg shadow-rose-500/25 hover:shadow-rose-500/40"
+              disabled={isSubmitting}
+              className={`mt-2 w-full bg-rose-600 hover:bg-rose-500 text-white font-semibold py-3.5 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 group shadow-lg shadow-rose-500/25 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : 'hover:shadow-rose-500/40'}`}
             >
-              Access Dashboard
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              Initialize NGO Node
+              {!isSubmitting && <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
             </button>
           </form>
 
-          <div className="mt-8 pt-6 border-t border-slate-800/50 text-center flex flex-col gap-2">
+          <div className="mt-8 pt-6 border-t border-slate-800/50 text-center">
             <p className="text-slate-400 text-sm">
-              Not an authorized NGO?{" "}
-              <Link to="/" className="text-blue-400 font-semibold hover:text-blue-300 transition-colors hover:underline">
-                Return Home
-              </Link>
-            </p>
-            <p className="text-slate-400 text-sm">
-              Need to initialize a new node?{" "}
-              <Link to="/ngo-register" className="text-rose-400 font-semibold hover:text-rose-300 transition-colors hover:underline">
-                Register NGO
+              Already possess an NGO terminal ID?{" "}
+              <Link to="/ngo-login" className="text-rose-400 font-semibold hover:text-rose-300 transition-colors hover:underline">
+                Sign in
               </Link>
             </p>
           </div>
@@ -109,4 +107,4 @@ function NgoLogin() {
   );
 }
 
-export default NgoLogin;
+export default NgoRegister;

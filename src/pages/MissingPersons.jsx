@@ -1,26 +1,23 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Search, UserPlus, MapPin, AlertCircle, Camera, CheckCircle2 } from "lucide-react";
-
-// Mock Data
-const MOCK_MISSING = [
-  { id: 1, name: "John Doe", age: 34, location: "Downtown Flooded Area", date: "2 Hours ago", status: "Searching", image: "https://i.pravatar.cc/150?u=1" },
-  { id: 2, name: "Sarah Smith", age: 10, location: "East Side Shelter", date: "5 Hours ago", status: "Found", image: "https://i.pravatar.cc/150?u=2" },
-  { id: 3, name: "Robert Johnson", age: 65, location: "North Hills Evacuation Route", date: "1 Day ago", status: "Searching", image: "https://i.pravatar.cc/150?u=3" },
-];
+import { db } from "../firebase";
+import { collection, onSnapshot } from "firebase/firestore";
 
 function MissingPersons() {
   const [searchTerm, setSearchTerm] = useState("");
   const [persons, setPersons] = useState([]);
 
   useEffect(() => {
-    // Simulate fetching
-    setPersons(MOCK_MISSING);
+    const unsub = onSnapshot(collection(db, "missing_persons"), (snapshot) => {
+      setPersons(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+    return () => unsub();
   }, []);
 
   const filtered = persons.filter(p => 
-    p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    p.location.toLowerCase().includes(searchTerm.toLowerCase())
+    p.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    p.lastSeen?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -94,13 +91,13 @@ function MissingPersons() {
                     </span>
                   </div>
                   <p className="text-sm text-slate-400 flex items-start gap-1.5 mt-2">
-                    <MapPin className="w-4 h-4 text-purple-400 shrink-0" /> {person.location}
+                    <MapPin className="w-4 h-4 text-purple-400 shrink-0" /> {person.lastSeen || person.location}
                   </p>
                 </div>
               </div>
 
               <div className="mt-6 pt-4 border-t border-slate-700/50 flex gap-2">
-                {person.status === 'Searching' ? (
+                {person.status === 'Missing' || person.status === 'Investigating' ? (
                   <button className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 py-2.5 rounded-xl font-medium transition-colors text-sm flex items-center justify-center gap-2">
                     <AlertCircle className="w-4 h-4" /> I have info
                   </button>

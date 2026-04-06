@@ -53,30 +53,48 @@ function SOSButton() {
   const handleSOS = () => {
     if (window.confirm("EMERGENCY 🚨\n\nAre you sure you want to broadcast an SOS and send an SMS to all nearby NGO responders?")) {
       
-      const sosPayload = {
-        type: "SOS EMERGENCY",
-        location: "GPS: Tracking coordinates...", // In a real app we'd use geolocation navigator.geolocation
-        needs: "Immediate Rescue / Medical Attention",
-        priority: "CRITICAL",
-        status: "Pending",
+      const sendPayload = (locationString) => {
+        const sosPayload = {
+          type: "SOS EMERGENCY",
+          location: locationString,
+          needs: "Immediate Rescue / Medical Attention",
+          priority: "CRITICAL",
+          status: "Pending",
+        };
+
+        if (!navigator.onLine) {
+          const existing = JSON.parse(localStorage.getItem("pending_sos") || "[]");
+          existing.push(sosPayload);
+          localStorage.setItem("pending_sos", JSON.stringify(existing));
+          alert("You are currently OFFLINE. Your SOS has been saved locally and will automatically dispatch the moment you regain internet connection.");
+        } else {
+          addDoc(collection(db, "disasters"), {
+            ...sosPayload,
+            time: serverTimestamp()
+          }).then(() => {
+            alert("SOS Broadcasted! SMS dispatch simulated to nearby NGOs. Help is on the way.");
+          }).catch(err => {
+            console.error("Error sending SOS:", err);
+            alert("Failed to send SOS. Firebase Error: " + err.message);
+          });
+        }
       };
 
-      if (!navigator.onLine) {
-        const existing = JSON.parse(localStorage.getItem("pending_sos") || "[]");
-        existing.push(sosPayload);
-        localStorage.setItem("pending_sos", JSON.stringify(existing));
-        alert("You are currently OFFLINE. Your SOS has been saved locally and will automatically dispatch the moment you regain internet connection.");
+      const gpsOptions = { enableHighAccuracy: true, timeout: 7000, maximumAge: 0 };
+
+      if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => sendPayload(`Latitude: ${pos.coords.latitude}, Longitude: ${pos.coords.longitude}`),
+          (err) => {
+             console.warn("GPS failed:", err);
+             const manualLoc = window.prompt("⚠️ Hardware GPS blocked by browser or OS.\n\nPlease type your exact emergency location:");
+             if (manualLoc) sendPayload(manualLoc);
+          },
+          gpsOptions
+        );
       } else {
-        // Online, send directly
-        addDoc(collection(db, "disasters"), {
-          ...sosPayload,
-          time: serverTimestamp()
-        }).then(() => {
-          alert("SOS Broadcasted! SMS dispatch simulated to nearby NGOs. Help is on the way.");
-        }).catch(err => {
-          console.error("Error sending SOS:", err);
-          alert("Failed to send SOS. Please try calling emergency services.");
-        });
+        const manualLoc = window.prompt("⚠️ GPS unavailable. Please type your emergency location:");
+        if (manualLoc) sendPayload(manualLoc);
       }
     }
   };
@@ -84,7 +102,7 @@ function SOSButton() {
   return (
     <button
       onClick={handleSOS}
-      className={`fixed bottom-6 right-6 z-50 text-white p-4 rounded-full transition-all duration-300 group flex items-center justify-center animate-bounce hover:animate-none ${
+      className={`fixed top-6 right-6 z-50 text-white p-4 rounded-full transition-all duration-300 group flex items-center justify-center ${
         isOffline 
         ? 'bg-amber-600 hover:bg-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.6)]' 
         : 'bg-red-600 hover:bg-red-500 shadow-[0_0_20px_rgba(239,68,68,0.6)] hover:shadow-[0_0_30px_rgba(239,68,68,0.8)]'
