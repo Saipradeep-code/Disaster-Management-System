@@ -60,9 +60,9 @@ function DisasterMap({ embedded = false }) {
     return () => unsubscribe();
   }, []);
 
-  const getCoordinates = async (location, id) => {
+  async function getCoordinates(location) {
     if (!location) return null;
-    const match = location.match(/Latitude:\s*([0-9.\-]+),\s*Longitude:\s*([0-9.\-]+)/);
+    const match = location.match(/Latitude:\s*([0-9.-]+),\s*Longitude:\s*([0-9.-]+)/);
     if (match) {
       return { lat: parseFloat(match[1]), lng: parseFloat(match[2]) };
     }

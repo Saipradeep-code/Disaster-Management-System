@@ -27,7 +27,7 @@ function SOSButton() {
     };
   }, []);
 
-  const syncOfflineSOS = async () => {
+  async function syncOfflineSOS() {
     const pendingSOS = localStorage.getItem("pending_sos");
     if (pendingSOS) {
       try {

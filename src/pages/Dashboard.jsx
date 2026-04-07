@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { db, auth } from "../firebase";
-import { collection, onSnapshot, doc, updateDoc, deleteDoc, query, where } from "firebase/firestore";
+import { collection, onSnapshot, doc, updateDoc, deleteDoc, query, where, addDoc, serverTimestamp } from "firebase/firestore";
 import {
   ShieldAlert, MapPin, CheckCircle2, AlertCircle, Clock, Activity,
   ArrowRight, Truck, LayoutDashboard, Map, Users, Target, Box,
@@ -26,6 +26,9 @@ function Dashboard() {
   const [missingPersons, setMissingPersons] = useState([]);
   const [donations, setDonations] = useState([]);
   const [volunteers, setVolunteers] = useState([]);
+  const [commsMessages, setCommsMessages] = useState([]);
+  const [documents, setDocuments] = useState([]);
+  const [missions, setMissions] = useState([]);
 
   const [inventory, setInventory] = useState([
 
@@ -175,7 +178,7 @@ function Dashboard() {
     const unsubscribeVols = onSnapshot(volQuery, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       // Sort so Pending is at the top
-      data.sort((a, b) => (a.status === 'Pending' ? -1 : 1));
+      data.sort((a) => (a.status === 'Pending' ? -1 : 1));
       setVolunteers(data);
     });
 
@@ -374,15 +377,7 @@ function Dashboard() {
     </div>
   );
 
-  const renderPlaceholder = (title, desc) => (
-    <div className="flex flex-col items-center justify-center h-[60vh] text-center animate-fade-in border border-slate-800 border-dashed rounded-3xl bg-slate-900/20">
-      <div className="bg-slate-800/50 p-6 rounded-3xl mb-4">
-        <Activity className="w-12 h-12 text-slate-500 animate-pulse" />
-      </div>
-      <h2 className="text-2xl font-bold text-white mb-2">{title}</h2>
-      <p className="text-slate-400 max-w-sm">{desc}</p>
-    </div>
-  );
+
 
   const renderVolunteers = () => (
     <div className="space-y-6 animate-fade-in relative">
