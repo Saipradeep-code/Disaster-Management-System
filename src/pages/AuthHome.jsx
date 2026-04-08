@@ -49,7 +49,7 @@ function AuthHome() {
               </div>
             </div>
           </div>
-
+          
           {/* Right Column: Portal Cards Grid */}
           <div className="lg:col-span-3 grid md:grid-cols-2 gap-6 animate-slide-up perspective-1000">
             
